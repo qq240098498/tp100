@@ -1,0 +1,15 @@
+{
+  "name": "tp100-check-hits",
+  "version": "1.0.0",
+  "private": true,
+  "description": "检查规则与命中清单工作台（种子版本）",
+  "scripts": {
+    "start": "node server/index.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "express": "^4.19.2"
+  }
+}

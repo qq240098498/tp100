@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>检查规则与命中清单工作台</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="topbar">
+    <div>
+      <h1>检查规则与命中清单工作台</h1>
+      <p class="subtitle">维护检查规则与纳入检查的文件，按规则扫一遍，把命中记到具体的文件与行上</p>
+    </div>
+    <div class="topbar-right">
+      <label class="operator" data-field="operator">当前操作者
+        <input id="operator" placeholder="填上你的名字" maxlength="40">
+      </label>
+      <div class="health" id="health">连接中…</div>
+    </div>
+  </header>
+
+  <div class="notice hidden" id="notice"></div>
+
+  <main>
+    <section class="panel">
+      <div class="panel-head">
+        <h2>检查规则</h2>
+        <div class="filters">
+          <select id="rule-filter-level"><option value="">全部级别</option></select>
+          <select id="rule-filter-status"><option value="">全部状态</option></select>
+          <select id="rule-filter-type"><option value="">全部适用文件类型</option></select>
+          <input id="rule-filter-keyword" placeholder="搜索编码、名称、匹配写法" maxlength="40">
+          <button type="button" id="rule-filter-apply">筛选</button>
+          <button type="button" id="rule-filter-reset" class="ghost">重置</button>
+          <button type="button" id="rule-refresh" class="ghost">刷新</button>
+          <button type="button" id="rule-new">新建规则</button>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table class="grid">
+          <thead>
+            <tr>
+              <th>编码</th>
+              <th>名称</th>
+              <th>级别</th>
+              <th>状态</th>
+              <th>适用文件类型</th>
+              <th>匹配写法</th>
+              <th>说明</th>
+              <th>更新时间</th>
+              <th>操作</th>
+            </tr>
+          </thead>
+          <tbody id="rule-body"></tbody>
+        </table>
+      </div>
+      <p class="empty-tip hidden" id="rule-empty">当前筛选条件下没有规则</p>
+
+      <form class="entry-form hidden" id="rule-form" autocomplete="off">
+        <h3 id="rule-form-title">新建规则</h3>
+        <div class="form-row">
+          <label data-field="code">规则编码<input id="rule-code" placeholder="例如 CODE-013" maxlength="20"></label>
+          <label data-field="name">规则名称<input id="rule-name" placeholder="例如 禁止把地址写死在代码里" maxlength="40"></label>
+          <label data-field="level">级别
+            <select id="rule-level"></select>
+          </label>
+        </div>
+        <div class="form-row">
+          <label data-field="status">状态
+            <select id="rule-status"></select>
+          </label>
+          <label data-field="fileType">适用文件类型
+            <select id="rule-file-type"></select>
+          </label>
+          <label data-field="pattern">匹配写法<input id="rule-pattern" placeholder="例如 console.log" maxlength="60"></label>
+        </div>
+        <label class="full" data-field="note">说明<input id="rule-note" placeholder="这条规则管什么、为什么这么定" maxlength="200"></label>
+        <div class="form-actions">
+          <button type="submit">保存</button>
+          <button type="button" id="rule-cancel" class="ghost">取消</button>
+        </div>
+      </form>
+    </section>
+
+    <section class="panel">
+      <div class="panel-head">
+        <h2>纳入检查的文件</h2>
+        <div class="filters">
+          <select id="file-filter-type"><option value="">全部类型</option></select>
+          <input id="file-filter-keyword" placeholder="搜索路径或备注" maxlength="60">
+          <button type="button" id="file-filter-apply">筛选</button>
+          <button type="button" id="file-filter-reset" class="ghost">重置</button>
+          <button type="button" id="file-new">收录新文件</button>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table class="grid">
+          <thead>
+            <tr>
+              <th>路径</th>
+              <th>类型</th>
+              <th>行数</th>
+              <th>备注</th>
+              <th>更新时间</th>
+              <th>操作</th>
+            </tr>
+          </thead>
+          <tbody id="file-body"></tbody>
+        </table>
+      </div>
+      <p class="empty-tip hidden" id="file-empty">当前筛选条件下没有文件</p>
+      <pre class="content-preview hidden" id="file-preview"></pre>
+
+      <form class="entry-form hidden" id="file-form" autocomplete="off">
+        <h3 id="file-form-title">收录新文件</h3>
+        <div class="form-row">
+          <label data-field="filePath">文件路径<input id="file-path" placeholder="例如 src/server/api.js" maxlength="120"></label>
+          <label class="full" data-field="content">文件内容<textarea id="file-content" rows="8" placeholder="把文件内容贴进来"></textarea></label>
+        </div>
+        <label class="full" data-field="fileNote">备注<input id="file-note" placeholder="这个文件是做什么的" maxlength="200"></label>
+        <div class="form-actions">
+          <button type="submit">保存</button>
+          <button type="button" id="file-cancel" class="ghost">取消</button>
+        </div>
+      </form>
+    </section>
+
+    <section class="panel">
+      <div class="panel-head">
+        <h2>命中清单</h2>
+        <div class="filters">
+          <select id="scan-rule"><option value="">全部规则</option></select>
+          <select id="scan-file"><option value="">全部文件</option></select>
+          <select id="scan-level"><option value="">全部级别</option></select>
+          <button type="button" id="scan-run">按规则扫一遍</button>
+        </div>
+      </div>
+      <p class="scan-meta" id="scan-meta">还没有扫过，点右上角扫一遍</p>
+      <p class="scan-warning hidden" id="scan-warning"></p>
+      <div class="summary hidden" id="scan-summary"></div>
+      <div class="table-wrap">
+        <table class="grid">
+          <thead>
+            <tr>
+              <th>规则编码</th>
+              <th>级别</th>
+              <th>规则名称</th>
+              <th>文件</th>
+              <th>行号</th>
+              <th>那一行的内容</th>
+            </tr>
+          </thead>
+          <tbody id="hit-body"></tbody>
+        </table>
+      </div>
+      <p class="empty-tip hidden" id="hit-empty">这一轮没有命中</p>
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>

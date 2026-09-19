@@ -1,0 +1,258 @@
+{
+  "rules": [
+    {
+      "id": "rule-1001",
+      "code": "CODE-001",
+      "name": "禁止提交调试输出",
+      "level": "警告",
+      "status": "启用",
+      "fileType": "js",
+      "pattern": "console.log",
+      "note": "上线前要换成统一日志",
+      "createdAt": "2026-09-02T02:00:00.000Z",
+      "updatedAt": "2026-09-02T02:00:00.000Z"
+    },
+    {
+      "id": "rule-1002",
+      "code": "CODE-002",
+      "name": "变量声明统一用 let 或 const",
+      "level": "错误",
+      "status": "启用",
+      "fileType": "js",
+      "pattern": "var ",
+      "note": "老代码里还有不少",
+      "createdAt": "2026-09-02T02:00:00.000Z",
+      "updatedAt": "2026-09-02T02:00:00.000Z"
+    },
+    {
+      "id": "rule-1003",
+      "code": "CODE-003",
+      "name": "待办事项需要收口",
+      "level": "提示",
+      "status": "启用",
+      "fileType": "全部",
+      "pattern": "TODO",
+      "note": "带人名与期限的可以留",
+      "createdAt": "2026-09-02T02:00:00.000Z",
+      "updatedAt": "2026-09-02T02:00:00.000Z"
+    },
+    {
+      "id": "rule-1004",
+      "code": "CODE-004",
+      "name": "禁止动态执行代码",
+      "level": "错误",
+      "status": "启用",
+      "fileType": "全部",
+      "pattern": "eval(",
+      "note": "",
+      "createdAt": "2026-09-02T02:00:00.000Z",
+      "updatedAt": "2026-09-02T02:00:00.000Z"
+    },
+    {
+      "id": "rule-1005",
+      "code": "CODE-005",
+      "name": "禁止把口令写进代码",
+      "level": "错误",
+      "status": "启用",
+      "fileType": "全部",
+      "pattern": "password =",
+      "note": "口令一律走统一配置",
+      "createdAt": "2026-09-02T02:00:00.000Z",
+      "updatedAt": "2026-09-02T02:00:00.000Z"
+    },
+    {
+      "id": "rule-1006",
+      "code": "CODE-006",
+      "name": "空捕获块要写清原因",
+      "level": "警告",
+      "status": "启用",
+      "fileType": "js",
+      "pattern": "catch (e) {}",
+      "note": "",
+      "createdAt": "2026-09-02T02:00:00.000Z",
+      "updatedAt": "2026-09-02T02:00:00.000Z"
+    },
+    {
+      "id": "rule-1007",
+      "code": "CODE-007",
+      "name": "调试开关上线前要关掉",
+      "level": "警告",
+      "status": "停用",
+      "fileType": "js",
+      "pattern": "DEBUG = true",
+      "note": "等联调结束再打开",
+      "createdAt": "2026-09-02T02:00:00.000Z",
+      "updatedAt": "2026-09-02T02:00:00.000Z"
+    },
+    {
+      "id": "rule-1008",
+      "code": "CODE-008",
+      "name": "数据库地址不许写死在代码里",
+      "level": "错误",
+      "status": "启用",
+      "fileType": "全部",
+      "pattern": "postgres://",
+      "note": "",
+      "createdAt": "2026-09-02T02:00:00.000Z",
+      "updatedAt": "2026-09-02T02:00:00.000Z"
+    },
+    {
+      "id": "rule-1009",
+      "code": "CODE-009",
+      "name": "取配置项要走统一封装",
+      "level": "提示",
+      "status": "启用",
+      "fileType": "js",
+      "pattern": "process.env[",
+      "note": "直接按名字取容易拼错",
+      "createdAt": "2026-09-02T02:00:00.000Z",
+      "updatedAt": "2026-09-02T02:00:00.000Z"
+    },
+    {
+      "id": "rule-1010",
+      "code": "CODE-010",
+      "name": "遗留注释要清理",
+      "level": "提示",
+      "status": "停用",
+      "fileType": "全部",
+      "pattern": "FIXME",
+      "note": "",
+      "createdAt": "2026-09-02T02:00:00.000Z",
+      "updatedAt": "2026-09-02T02:00:00.000Z"
+    },
+    {
+      "id": "rule-1011",
+      "code": "CODE-011",
+      "name": "脚本里禁止直接用强制删除",
+      "level": "警告",
+      "status": "启用",
+      "fileType": "sh",
+      "pattern": "rm -rf",
+      "note": "脚本里改用受控的清理命令",
+      "createdAt": "2026-09-02T02:00:00.000Z",
+      "updatedAt": "2026-09-02T02:00:00.000Z"
+    },
+    {
+      "id": "rule-1012",
+      "code": "CODE-012",
+      "name": "文档里的临时占位要删掉",
+      "level": "提示",
+      "status": "启用",
+      "fileType": "md",
+      "pattern": "待补",
+      "note": "",
+      "createdAt": "2026-09-02T02:00:00.000Z",
+      "updatedAt": "2026-09-02T02:00:00.000Z"
+    }
+  ],
+  "files": [
+    {
+      "id": "file-2001",
+      "path": "src/server/api.js",
+      "type": "js",
+      "content": "const express = require(\"express\");\nconst router = express.Router();\n\nrouter.get(\"/users\", (req, res) => {\n  console.log(\"查询用户列表\");\n  var limit = Number(req.query.limit || 20);\n  // TODO 分页参数还要补校验\n  const parsed = eval(\"(\" + req.query.filter + \")\");\n  res.json({ limit, parsed });\n});\n\nmodule.exports = router;",
+      "note": "用户相关接口",
+      "createdAt": "2026-09-02T03:00:00.000Z",
+      "updatedAt": "2026-09-02T03:00:00.000Z"
+    },
+    {
+      "id": "file-2002",
+      "path": "src/server/store.js",
+      "type": "js",
+      "content": "const fs = require(\"fs\");\n\nfunction dataFile() {\n  const dir = process.env[\"DATA_DIR\"] || \"./data\";\n  console.log(\"数据目录\", dir);\n  return dir + \"/db.json\";\n}\n\nfunction load() {\n  return JSON.parse(fs.readFileSync(dataFile(), \"utf8\"));\n}\n\nmodule.exports = { load };",
+      "note": "",
+      "createdAt": "2026-09-02T03:00:00.000Z",
+      "updatedAt": "2026-09-02T03:00:00.000Z"
+    },
+    {
+      "id": "file-2003",
+      "path": "src/server/user.js",
+      "type": "js",
+      "content": "const db = require(\"./db\");\n\nconst conn = \"postgres://app:app@127.0.0.1:5432/member\";\nconst password = \"app-2026\";\n\nfunction findUser(id) {\n  try {\n    return db.query(\"select * from users where id = $1\", [id]);\n  } catch (e) {}\n}\n\nmodule.exports = { findUser, conn, password };",
+      "note": "账号查询",
+      "createdAt": "2026-09-02T03:00:00.000Z",
+      "updatedAt": "2026-09-02T03:00:00.000Z"
+    },
+    {
+      "id": "file-2004",
+      "path": "src/server/report.js",
+      "type": "js",
+      "content": "function summarize(rows) {\n  var total = 0;\n  rows.forEach((row) => {\n    total += row.amount;\n  });\n  // TODO 还要区分已退款的部分\n  return { total, count: rows.length };\n}\n\nmodule.exports = { summarize };",
+      "note": "",
+      "createdAt": "2026-09-02T03:00:00.000Z",
+      "updatedAt": "2026-09-02T03:00:00.000Z"
+    },
+    {
+      "id": "file-2005",
+      "path": "src/web/app.js",
+      "type": "js",
+      "content": "const state = { list: [] };\n\nasync function load() {\n  console.log(\"开始加载\");\n  const res = await fetch(\"/api/users\");\n  state.list = await res.json();\n  render();\n}\n\nfunction render() {\n  var box = document.getElementById(\"list\");\n  box.textContent = state.list.length + \" 条\";\n}",
+      "note": "页面入口",
+      "createdAt": "2026-09-02T03:00:00.000Z",
+      "updatedAt": "2026-09-02T03:00:00.000Z"
+    },
+    {
+      "id": "file-2006",
+      "path": "src/web/format.js",
+      "type": "js",
+      "content": "const PAD = (num) => String(num).padStart(2, \"0\");\n\nfunction formatTime(value) {\n  const date = new Date(value);\n  return date.getFullYear() + \"-\" + PAD(date.getMonth() + 1) + \"-\" + PAD(date.getDate());\n}\n\nfunction formatAmount(cents) {\n  return (cents / 100).toFixed(2);\n}\n\nmodule.exports = { formatTime, formatAmount };",
+      "note": "格式化工具，比较干净",
+      "createdAt": "2026-09-02T03:00:00.000Z",
+      "updatedAt": "2026-09-02T03:00:00.000Z"
+    },
+    {
+      "id": "file-2007",
+      "path": "src/web/legacy/old-util.js",
+      "type": "js",
+      "content": "// FIXME 这个文件准备整体删掉，暂时先用着\nfunction pick(source, keys) {\n  var out = {};\n  keys.forEach(function (key) {\n    out[key] = source[key];\n  });\n  console.log(\"pick\", keys.length);\n  return out;\n}\n\nfunction run(expr) {\n  return eval(expr);\n}\n\nmodule.exports = { pick, run };",
+      "note": "历史遗留工具",
+      "createdAt": "2026-09-02T03:00:00.000Z",
+      "updatedAt": "2026-09-02T03:00:00.000Z"
+    },
+    {
+      "id": "file-2008",
+      "path": "src/config/default.js",
+      "type": "js",
+      "content": "const DEBUG = true;\n\nconst config = {\n  port: Number(process.env[\"PORT\"] || 4000),\n  password = \"member-2026\",\n  redis: \"redis://127.0.0.1:6379/0\",\n};\n\nmodule.exports = config;",
+      "note": "默认配置，里面有调试开关",
+      "createdAt": "2026-09-02T03:00:00.000Z",
+      "updatedAt": "2026-09-02T03:00:00.000Z"
+    },
+    {
+      "id": "file-2009",
+      "path": "scripts/deploy.sh",
+      "type": "sh",
+      "content": "#!/usr/bin/env bash\nset -e\n\nAPP_DIR=/opt/member\n\n# TODO 换机器之后要改掉这个路径\ncd \"$APP_DIR\"\ngit pull --ff-only\nnpm ci --omit=dev\nnpm start &\n\necho \"发布完成\"",
+      "note": "发布脚本",
+      "createdAt": "2026-09-02T03:00:00.000Z",
+      "updatedAt": "2026-09-02T03:00:00.000Z"
+    },
+    {
+      "id": "file-2010",
+      "path": "scripts/migrate.sh",
+      "type": "sh",
+      "content": "#!/usr/bin/env bash\nset -e\n\nDB_URL=\"postgres://app:app@127.0.0.1:5432/member\"\n\npsql \"$DB_URL\" -f sql/2026-09-01-member.sql\necho \"迁移完成\"",
+      "note": "迁移脚本",
+      "createdAt": "2026-09-02T03:00:00.000Z",
+      "updatedAt": "2026-09-02T03:00:00.000Z"
+    },
+    {
+      "id": "file-2011",
+      "path": "docs/readme.md",
+      "type": "md",
+      "content": "# 会员中心\n\n## 启动\n\n先装依赖再启动，端口默认 4000。\n\n## 部署\n\n待补\n\n<!-- TODO 补上回滚步骤 -->",
+      "note": "",
+      "createdAt": "2026-09-02T03:00:00.000Z",
+      "updatedAt": "2026-09-02T03:00:00.000Z"
+    },
+    {
+      "id": "file-2012",
+      "path": "config/deploy.yml",
+      "type": "yml",
+      "content": "service: member\nreplicas: 2\ndatabase: postgres://app:app@127.0.0.1:5432/member\nhealthcheck: /health\nresources:\n  cpu: 500m\n  memory: 512Mi",
+      "note": "部署描述",
+      "createdAt": "2026-09-02T03:00:00.000Z",
+      "updatedAt": "2026-09-02T03:00:00.000Z"
+    }
+  ]
+}
