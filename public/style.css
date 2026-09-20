@@ -383,3 +383,39 @@ label.full input {
   display: flex;
   gap: 10px;
 }
+
+.inline-label {
+  flex-direction: row;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+.inline-label input {
+  width: 76px;
+}
+
+.inspect-group {
+  margin-top: 14px;
+}
+
+.inspect-group h3 {
+  margin: 0 0 8px;
+  font-size: 13.5px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.inspect-count {
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--ink-soft);
+}
+
+.inspect-more {
+  margin: 6px 0 0;
+  color: var(--ink-soft);
+  font-size: 12px;
+}

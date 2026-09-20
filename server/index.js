@@ -107,6 +107,35 @@ app.post('/api/scan', (req, res) => {
   }
 });
 
+// 巡检一次：整体分布与五类需要盯住的清单，条数上限与多久算很久都由页面指定
+app.get('/api/inspection', (req, res) => {
+  try {
+    res.json(api.inspect({
+      limit: api.readQuery(req.query, 'limit'),
+      staleDays: api.readQuery(req.query, 'staleDays'),
+    }));
+  } catch (err) {
+    sendError(res, err);
+  }
+});
+
+// 把一条命中标为忽略，复核期限到了还没处理会出现在巡检里
+app.post('/api/dismissals', (req, res) => {
+  try {
+    res.status(201).json(api.createDismissal(req.body));
+  } catch (err) {
+    sendError(res, err);
+  }
+});
+
+app.patch('/api/dismissals/:id', (req, res) => {
+  try {
+    res.json(api.handleDismissal(req.params.id, req.body));
+  } catch (err) {
+    sendError(res, err);
+  }
+});
+
 // 未匹配到的接口路径统一返回说明，避免前端拿到一串页面内容
 app.use('/api', (_req, res) => {
   res.status(404).json({ error: { code: 'API_NOT_FOUND', message: '接口不存在', field: '' } });

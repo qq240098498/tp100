@@ -1,4 +1,4 @@
-const { load, LEVELS, STATUSES } = require('./store');
+const { load, LEVELS, STATUSES, DISMISSAL_STATUSES } = require('./store');
 const { ApiError, pickText } = require('./errors');
 
 // 一条规则管不管这个文件：适用文件类型写成全部的管所有文件，否则只认同类型的
@@ -73,6 +73,16 @@ function scan(options) {
     if (a.code !== b.code) return a.code < b.code ? -1 : 1;
     if (a.path !== b.path) return a.path < b.path ? -1 : 1;
     return a.lineNo - b.lineNo;
+  });
+
+  // 仍是忽略状态的标记跟着命中一起返回，页面上好区分哪些命中已经被放过了
+  const activeDismissals = new Map();
+  (data.dismissals || [])
+    .filter((item) => item.status === DISMISSAL_STATUSES[0])
+    .forEach((item) => activeDismissals.set(`${item.ruleId}|${item.fileId}|${item.lineNo}`, item));
+  hits.forEach((hit) => {
+    const dismissal = activeDismissals.get(`${hit.ruleId}|${hit.fileId}|${hit.lineNo}`);
+    hit.dismissal = dismissal ? { id: dismissal.id, reviewBy: dismissal.reviewBy, note: dismissal.note } : null;
   });
 
   const byLevel = {};

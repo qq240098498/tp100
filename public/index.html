@@ -149,12 +149,43 @@
               <th>文件</th>
               <th>行号</th>
               <th>那一行的内容</th>
+              <th>操作</th>
             </tr>
           </thead>
           <tbody id="hit-body"></tbody>
         </table>
       </div>
       <p class="empty-tip hidden" id="hit-empty">这一轮没有命中</p>
+
+      <form class="entry-form hidden" id="dismiss-form" autocomplete="off">
+        <h3 id="dismiss-form-title">标为忽略</h3>
+        <div class="form-row">
+          <label data-field="dismissReviewBy">复核期限<input id="dismiss-review-by" type="date"></label>
+          <label class="full" data-field="dismissNote">备注<input id="dismiss-note" placeholder="为什么这条先放过、什么时候再回来看" maxlength="200"></label>
+        </div>
+        <div class="form-actions">
+          <button type="submit">保存</button>
+          <button type="button" id="dismiss-cancel" class="ghost">取消</button>
+        </div>
+      </form>
+    </section>
+
+    <section class="panel">
+      <div class="panel-head">
+        <h2>巡检</h2>
+        <div class="filters">
+          <label class="inline-label" data-field="inspectLimit">每类最多显示
+            <input id="inspect-limit" type="number" min="1" max="50" value="5"> 条
+          </label>
+          <label class="inline-label" data-field="inspectStaleDays">超过
+            <input id="inspect-stale-days" type="number" min="1" max="3650" value="90"> 天没改动算很久
+          </label>
+          <button type="button" id="inspect-run">跑一次巡检</button>
+        </div>
+      </div>
+      <p class="scan-meta" id="inspect-meta">还没有巡检过，点右上角跑一次</p>
+      <div class="summary hidden" id="inspect-overview"></div>
+      <div id="inspect-lists"></div>
     </section>
   </main>
 

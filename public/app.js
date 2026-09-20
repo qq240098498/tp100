@@ -12,6 +12,8 @@ const state = {
   editingRuleId: '',
   editingFileId: '',
   lastScan: null,
+  dismissTarget: null,
+  lastInspection: null,
 };
 
 const el = (id) => document.getElementById(id);
@@ -396,15 +398,184 @@ function renderScan(result) {
   summaryBox.classList.remove('hidden');
 
   const body = el('hit-body');
-  body.innerHTML = result.hits.map((hit) => `<tr>
+  body.innerHTML = result.hits.map((hit, index) => `<tr>
       <td class="mono">${escapeHtml(hit.code)}</td>
       <td><span class="tag ${levelClass(hit.level)}">${escapeHtml(hit.level)}</span></td>
       <td>${escapeHtml(hit.ruleName)}</td>
       <td class="mono">${escapeHtml(hit.path)}</td>
       <td class="mono">${hit.lineNo}</td>
       <td class="mono line-cell">${escapeHtml(hit.lineText)}</td>
+      <td class="actions">${hit.dismissal
+        ? `<span class="tag lv-hint" title="${escapeHtml(hit.dismissal.note)}">已忽略 · 期限 ${escapeHtml(hit.dismissal.reviewBy)}</span>`
+        : `<button type="button" class="link" data-hit-dismiss="${index}">标为忽略</button>`}</td>
     </tr>`).join('');
   el('hit-empty').classList.toggle('hidden', result.hits.length > 0);
+}
+
+// 标为忽略：记下当前点的是哪一条命中，复核期限与备注由表单收集
+function openDismissForm(hit) {
+  state.dismissTarget = { ruleId: hit.ruleId, fileId: hit.fileId, lineNo: hit.lineNo };
+  el('dismiss-form-title').textContent = `标为忽略：${hit.code} · ${hit.path} · 第 ${hit.lineNo} 行`;
+  el('dismiss-review-by').value = '';
+  el('dismiss-note').value = '';
+  el('dismiss-form').classList.remove('hidden');
+  el('dismiss-review-by').focus();
+}
+
+function closeDismissForm() {
+  state.dismissTarget = null;
+  el('dismiss-form').classList.add('hidden');
+  clearFieldMarks();
+}
+
+async function submitDismiss(event) {
+  event.preventDefault();
+  clearNotice();
+  clearFieldMarks();
+  if (!state.dismissTarget) return;
+  const payload = {
+    ...state.dismissTarget,
+    reviewBy: el('dismiss-review-by').value,
+    note: el('dismiss-note').value,
+  };
+  try {
+    await request('/api/dismissals', { method: 'POST', body: JSON.stringify(payload) });
+    closeDismissForm();
+    await runScan();
+    notify('这条命中已标为忽略', 'ok');
+  } catch (err) {
+    notify(err.message, 'error');
+    markField(err.field);
+  }
+}
+
+// 巡检的五类清单：每一类有自己的表头与行画法，条目里都带上所属规则与具体数字
+const INSPECT_GROUPS = [
+  {
+    key: 'disabledSinceCreation',
+    title: '建好之后一直是停用的',
+    heads: ['编码', '名称', '级别', '适用文件类型', '建好时间', '已停用'],
+    row: (item) => `
+      <td class="mono">${escapeHtml(item.code)}</td>
+      <td>${escapeHtml(item.name)}</td>
+      <td><span class="tag ${levelClass(item.level)}">${escapeHtml(item.level)}</span></td>
+      <td>${escapeHtml(item.fileType)}</td>
+      <td class="mono">${escapeHtml(formatTime(item.createdAt))}</td>
+      <td>${item.disabledDays} 天</td>`,
+  },
+  {
+    key: 'enabledWithoutHits',
+    title: '启用着但从来没有产生过命中的',
+    heads: ['编码', '名称', '级别', '适用文件类型', '匹配写法', '命中条数'],
+    row: (item) => `
+      <td class="mono">${escapeHtml(item.code)}</td>
+      <td>${escapeHtml(item.name)}</td>
+      <td><span class="tag ${levelClass(item.level)}">${escapeHtml(item.level)}</span></td>
+      <td>${escapeHtml(item.fileType)}</td>
+      <td class="mono">${escapeHtml(item.pattern)}</td>
+      <td>${item.hitCount} 条</td>`,
+  },
+  {
+    key: 'duplicatePattern',
+    title: '匹配写法与另一条启用规则完全一样的',
+    heads: ['编码', '名称', '状态', '匹配写法', '写法相同的启用规则', '条数'],
+    row: (item) => `
+      <td class="mono">${escapeHtml(item.code)}</td>
+      <td>${escapeHtml(item.name)}</td>
+      <td>${escapeHtml(item.status)}</td>
+      <td class="mono">${escapeHtml(item.pattern)}</td>
+      <td class="mono">${escapeHtml(item.enabledSameCodes.join('、'))}</td>
+      <td>${item.enabledSameCount} 条</td>`,
+  },
+  {
+    key: 'staleRules',
+    title: '改动时间在很久以前的',
+    heads: ['编码', '名称', '级别', '状态', '上次改动', '没改动'],
+    row: (item) => `
+      <td class="mono">${escapeHtml(item.code)}</td>
+      <td>${escapeHtml(item.name)}</td>
+      <td><span class="tag ${levelClass(item.level)}">${escapeHtml(item.level)}</span></td>
+      <td>${escapeHtml(item.status)}</td>
+      <td class="mono">${escapeHtml(formatTime(item.updatedAt))}</td>
+      <td>${item.daysSinceUpdated} 天</td>`,
+  },
+  {
+    key: 'overdueDismissals',
+    title: '标记了忽略但复核期限已经过去还没处理的',
+    heads: ['规则编码', '规则名称', '文件', '行号', '复核期限', '已逾期', '备注', '操作'],
+    row: (item) => `
+      <td class="mono">${escapeHtml(item.code || '（规则已删除）')}</td>
+      <td>${escapeHtml(item.ruleName || '—')}</td>
+      <td class="mono">${escapeHtml(item.path || '（文件已移出）')}</td>
+      <td class="mono">${item.lineNo}</td>
+      <td class="mono">${escapeHtml(item.reviewBy)}</td>
+      <td>${item.overdueDays} 天</td>
+      <td class="note-cell">${escapeHtml(item.note)}</td>
+      <td class="actions"><button type="button" class="link" data-dismiss-handle="${escapeHtml(item.id)}">标为已处理</button></td>`,
+  },
+];
+
+// 巡检一次：整体分布与五类清单一起画出来
+async function runInspection() {
+  clearNotice();
+  clearFieldMarks();
+  const params = new URLSearchParams();
+  const limit = el('inspect-limit').value.trim();
+  const staleDays = el('inspect-stale-days').value.trim();
+  if (limit) params.set('limit', limit);
+  if (staleDays) params.set('staleDays', staleDays);
+  const query = params.toString();
+  try {
+    const result = await request(`/api/inspection${query ? `?${query}` : ''}`);
+    state.lastInspection = result;
+    renderInspection(result);
+  } catch (err) {
+    notify(err.message, 'error');
+    markField(err.field);
+  }
+}
+
+function renderInspection(result) {
+  el('inspect-meta').textContent = `巡检时刻 ${formatTime(result.generatedAt)}　规则总条数 ${result.rulesTotal} 条　每类最多显示 ${result.limit} 条　超过 ${result.staleDays} 天没改动算很久`;
+
+  const overviewLine = (label, items) => `${label}：`
+    + items.map((item) => `${item.value} ${item.count} 条（占 ${item.percent}%）`).join('　');
+  const overviewBox = el('inspect-overview');
+  overviewBox.innerHTML = `
+    <div class="summary-line"><strong>占比按规则总条数 ${result.rulesTotal} 条计算</strong></div>
+    <div class="summary-line">${escapeHtml(overviewLine('按级别', result.overview.byLevel))}</div>
+    <div class="summary-line">${escapeHtml(overviewLine('按状态', result.overview.byStatus))}</div>
+    <div class="summary-line">${escapeHtml(overviewLine('按适用文件类型', result.overview.byFileType))}</div>`;
+  overviewBox.classList.remove('hidden');
+
+  el('inspect-lists').innerHTML = INSPECT_GROUPS.map((group) => {
+    const data = result.watchlists[group.key];
+    const head = `<h3>${escapeHtml(group.title)}<span class="inspect-count">共 ${data.total} 条</span></h3>`;
+    if (!data.items.length) {
+      return `<div class="inspect-group">${head}<p class="empty-tip">这一类没有要盯的</p></div>`;
+    }
+    const table = `<div class="table-wrap"><table class="grid">
+        <thead><tr>${group.heads.map((head2) => `<th>${escapeHtml(head2)}</th>`).join('')}</tr></thead>
+        <tbody>${data.items.map((item) => `<tr>${group.row(item)}</tr>`).join('')}</tbody>
+      </table></div>`;
+    const more = data.total > data.items.length
+      ? `<p class="inspect-more">一共 ${data.total} 条，这里只显示前 ${data.items.length} 条，把条数上限调大能看全</p>`
+      : '';
+    return `<div class="inspect-group">${head}${table}${more}</div>`;
+  }).join('');
+}
+
+// 复核处理：标成已处理之后刷新巡检，命中清单里那条忽略标注也一并更新
+async function handleDismissal(id) {
+  clearNotice();
+  try {
+    await request(`/api/dismissals/${encodeURIComponent(id)}`, { method: 'PATCH', body: JSON.stringify({ status: '已处理' }) });
+    await runInspection();
+    if (state.lastScan) await runScan();
+    notify('这条忽略记录已标为已处理', 'ok');
+  } catch (err) {
+    notify(err.message, 'error');
+  }
 }
 
 // 列表上的操作用事件委托统一处理，列表重绘之后不需要重新绑定
@@ -463,6 +634,18 @@ document.addEventListener('click', async (event) => {
     } catch (err) {
       notify(err.message, 'error');
     }
+    return;
+  }
+
+  if (node.dataset.hitDismiss !== undefined && node.dataset.hitDismiss !== '') {
+    clearNotice();
+    const hit = state.lastScan && state.lastScan.hits[Number(node.dataset.hitDismiss)];
+    if (hit) openDismissForm(hit);
+    return;
+  }
+
+  if (node.dataset.dismissHandle) {
+    await handleDismissal(node.dataset.dismissHandle);
   }
 });
 
@@ -505,6 +688,9 @@ el('file-filter-reset').addEventListener('click', () => {
   loadFiles().catch((err) => notify(err.message, 'error'));
 });
 el('scan-run').addEventListener('click', runScan);
+el('dismiss-form').addEventListener('submit', submitDismiss);
+el('dismiss-cancel').addEventListener('click', closeDismissForm);
+el('inspect-run').addEventListener('click', runInspection);
 el('rule-filter-level').addEventListener('change', () => {
   loadRules().catch((err) => notify(err.message, 'error'));
 });

@@ -8,6 +8,7 @@ const TEMP_FILE = path.join(DATA_DIR, 'db.json.tmp');
 const LEVELS = ['提示', '警告', '错误'];
 const STATUSES = ['启用', '停用'];
 const FILE_TYPES = ['全部', 'js', 'sh', 'md', 'yml'];
+const DISMISSAL_STATUSES = ['忽略', '已处理'];
 const MAX_CODE_LENGTH = 20;
 const MAX_RULE_NAME_LENGTH = 40;
 const MAX_PATTERN_LENGTH = 60;
@@ -295,6 +296,49 @@ function seedFiles() {
   ];
 }
 
+// 命中条目上的忽略标记。一条已过期还没复核的、一条还没到复核期限的、
+// 一条已经处理完的，用来观察巡检里复核期限已过这一档
+function seedDismissals() {
+  return [
+    {
+      id: 'dismiss-3001',
+      ruleId: 'rule-1001',
+      fileId: 'file-2001',
+      lineNo: 5,
+      reviewBy: '2026-09-10',
+      note: '等统一日志方案定下来再一起改',
+      status: '忽略',
+      createdAt: '2026-09-05T02:00:00.000Z',
+      updatedAt: '2026-09-05T02:00:00.000Z',
+      handledAt: '',
+    },
+    {
+      id: 'dismiss-3002',
+      ruleId: 'rule-1003',
+      fileId: 'file-2009',
+      lineNo: 6,
+      reviewBy: '2026-09-30',
+      note: '换机器的排期在月底，到期再复核',
+      status: '忽略',
+      createdAt: '2026-09-06T02:00:00.000Z',
+      updatedAt: '2026-09-06T02:00:00.000Z',
+      handledAt: '',
+    },
+    {
+      id: 'dismiss-3003',
+      ruleId: 'rule-1008',
+      fileId: 'file-2010',
+      lineNo: 4,
+      reviewBy: '2026-09-08',
+      note: '迁移脚本专用地址，已确认保留',
+      status: '已处理',
+      createdAt: '2026-09-04T02:00:00.000Z',
+      updatedAt: '2026-09-07T02:00:00.000Z',
+      handledAt: '2026-09-07T02:00:00.000Z',
+    },
+  ];
+}
+
 // 把单条规则整理成固定结构，级别与状态不认识的一律回到默认值
 function normalizeRule(item, fallbackIndex) {
   const source = item && typeof item === 'object' ? item : {};
@@ -335,10 +379,30 @@ function normalizeFile(item, fallbackIndex) {
   };
 }
 
+// 把单条忽略记录整理成固定结构，状态不认识的一律回到忽略
+function normalizeDismissal(item, fallbackIndex) {
+  const source = item && typeof item === 'object' ? item : {};
+  const createdAt = typeof source.createdAt === 'string' && source.createdAt ? source.createdAt : new Date().toISOString();
+  const lineNo = Number.isInteger(source.lineNo) && source.lineNo > 0 ? source.lineNo : 0;
+  const status = DISMISSAL_STATUSES.includes(source.status) ? source.status : DISMISSAL_STATUSES[0];
+  return {
+    id: typeof source.id === 'string' && source.id ? source.id : `dismiss-restored-${fallbackIndex + 1}`,
+    ruleId: typeof source.ruleId === 'string' ? source.ruleId : '',
+    fileId: typeof source.fileId === 'string' ? source.fileId : '',
+    lineNo,
+    reviewBy: typeof source.reviewBy === 'string' ? source.reviewBy : '',
+    note: typeof source.note === 'string' ? source.note : '',
+    status,
+    createdAt,
+    updatedAt: typeof source.updatedAt === 'string' && source.updatedAt ? source.updatedAt : createdAt,
+    handledAt: typeof source.handledAt === 'string' ? source.handledAt : '',
+  };
+}
+
 // 整份数据保证规则与文件结构一致，缺编号、缺名称、缺路径的条目一律丢掉
 function normalize(raw) {
   const source = raw && typeof raw === 'object' ? raw : {};
-  const seed = { rules: seedRules(), files: seedFiles() };
+  const seed = { rules: seedRules(), files: seedFiles(), dismissals: seedDismissals() };
 
   const rawRules = Array.isArray(source.rules) ? source.rules : seed.rules;
   const seenRuleIds = new Set();
@@ -368,7 +432,18 @@ function normalize(raw) {
     files.push(file);
   });
 
-  return { rules, files };
+  const rawDismissals = Array.isArray(source.dismissals) ? source.dismissals : seed.dismissals;
+  const seenDismissalIds = new Set();
+  const dismissals = [];
+  rawDismissals.forEach((item, index) => {
+    const dismissal = normalizeDismissal(item, index);
+    if (!dismissal.id || !dismissal.ruleId || !dismissal.fileId || !dismissal.lineNo || !dismissal.reviewBy) return;
+    if (seenDismissalIds.has(dismissal.id)) return;
+    seenDismissalIds.add(dismissal.id);
+    dismissals.push(dismissal);
+  });
+
+  return { rules, files, dismissals };
 }
 
 // 读取数据文件：文件缺失或内容损坏时回落到初始数据并立刻补写
@@ -377,7 +452,7 @@ function load() {
     const raw = fs.readFileSync(DATA_FILE, 'utf8');
     return normalize(JSON.parse(raw));
   } catch (err) {
-    const data = { rules: seedRules(), files: seedFiles() };
+    const data = { rules: seedRules(), files: seedFiles(), dismissals: seedDismissals() };
     save(data);
     return data;
   }
@@ -396,12 +471,15 @@ module.exports = {
   save,
   seedRules,
   seedFiles,
+  seedDismissals,
   normalize,
   normalizeRule,
   normalizeFile,
+  normalizeDismissal,
   LEVELS,
   STATUSES,
   FILE_TYPES,
+  DISMISSAL_STATUSES,
   MAX_CODE_LENGTH,
   MAX_RULE_NAME_LENGTH,
   MAX_PATTERN_LENGTH,
