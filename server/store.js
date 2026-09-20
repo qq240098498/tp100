@@ -15,23 +15,26 @@ const MAX_NOTE_LENGTH = 200;
 const MAX_PATH_LENGTH = 120;
 const MAX_CONTENT_LENGTH = 4000;
 
-// 检查规则的初始数据。十二条规则里有两条是停用的，
-// 有一条启用的规则在现有文件里一条命中都没有，用来观察从未命中的规则
+// 检查规则的初始数据。十三条规则里有两条建好之后一直是停用，
+// 有一条启用的规则在现有文件里一条命中都没有，用来观察从未命中的规则；
+// CODE-013 与启用中的 CODE-001 匹配写法完全一样，用来观察写法重复；
+// 改动时间有新有旧，超过三十天没动的会在巡检里被挑出来
 function seedRules() {
   const at = '2026-09-02T02:00:00.000Z';
   return [
-    { id: 'rule-1001', code: 'CODE-001', name: '禁止提交调试输出', level: '警告', status: '启用', fileType: 'js', pattern: 'console.log', note: '上线前要换成统一日志', createdAt: at, updatedAt: at },
+    { id: 'rule-1001', code: 'CODE-001', name: '禁止提交调试输出', level: '警告', status: '启用', fileType: 'js', pattern: 'console.log', note: '上线前要换成统一日志', createdAt: at, updatedAt: '2026-09-15T02:00:00.000Z' },
     { id: 'rule-1002', code: 'CODE-002', name: '变量声明统一用 let 或 const', level: '错误', status: '启用', fileType: 'js', pattern: 'var ', note: '老代码里还有不少', createdAt: at, updatedAt: at },
     { id: 'rule-1003', code: 'CODE-003', name: '待办事项需要收口', level: '提示', status: '启用', fileType: '全部', pattern: 'TODO', note: '带人名与期限的可以留', createdAt: at, updatedAt: at },
-    { id: 'rule-1004', code: 'CODE-004', name: '禁止动态执行代码', level: '错误', status: '启用', fileType: '全部', pattern: 'eval(', note: '', createdAt: at, updatedAt: at },
+    { id: 'rule-1004', code: 'CODE-004', name: '禁止动态执行代码', level: '错误', status: '启用', fileType: '全部', pattern: 'eval(', note: '', createdAt: '2026-06-10T02:00:00.000Z', updatedAt: '2026-07-15T02:00:00.000Z' },
     { id: 'rule-1005', code: 'CODE-005', name: '禁止把口令写进代码', level: '错误', status: '启用', fileType: '全部', pattern: 'password =', note: '口令一律走统一配置', createdAt: at, updatedAt: at },
     { id: 'rule-1006', code: 'CODE-006', name: '空捕获块要写清原因', level: '警告', status: '启用', fileType: 'js', pattern: 'catch (e) {}', note: '', createdAt: at, updatedAt: at },
     { id: 'rule-1007', code: 'CODE-007', name: '调试开关上线前要关掉', level: '警告', status: '停用', fileType: 'js', pattern: 'DEBUG = true', note: '等联调结束再打开', createdAt: at, updatedAt: at },
-    { id: 'rule-1008', code: 'CODE-008', name: '数据库地址不许写死在代码里', level: '错误', status: '启用', fileType: '全部', pattern: 'postgres://', note: '', createdAt: at, updatedAt: at },
+    { id: 'rule-1008', code: 'CODE-008', name: '数据库地址不许写死在代码里', level: '错误', status: '启用', fileType: '全部', pattern: 'postgres://', note: '', createdAt: '2026-06-10T02:00:00.000Z', updatedAt: '2026-06-10T02:00:00.000Z' },
     { id: 'rule-1009', code: 'CODE-009', name: '取配置项要走统一封装', level: '提示', status: '启用', fileType: 'js', pattern: 'process.env[', note: '直接按名字取容易拼错', createdAt: at, updatedAt: at },
     { id: 'rule-1010', code: 'CODE-010', name: '遗留注释要清理', level: '提示', status: '停用', fileType: '全部', pattern: 'FIXME', note: '', createdAt: at, updatedAt: at },
     { id: 'rule-1011', code: 'CODE-011', name: '脚本里禁止直接用强制删除', level: '警告', status: '启用', fileType: 'sh', pattern: 'rm -rf', note: '脚本里改用受控的清理命令', createdAt: at, updatedAt: at },
     { id: 'rule-1012', code: 'CODE-012', name: '文档里的临时占位要删掉', level: '提示', status: '启用', fileType: 'md', pattern: '待补', note: '', createdAt: at, updatedAt: at },
+    { id: 'rule-1013', code: 'CODE-013', name: '调试输出统一走日志', level: '提示', status: '启用', fileType: 'js', pattern: 'console.log', note: '和 CODE-001 说的是一回事', createdAt: '2026-09-10T02:00:00.000Z', updatedAt: '2026-09-10T02:00:00.000Z' },
   ];
 }
 
@@ -316,6 +319,34 @@ function normalizeRule(item, fallbackIndex) {
   };
 }
 
+// 被标成忽略的命中：记着是哪条规则、哪个文件的哪一行，以及复核期限与是否已处理。
+// 四条里有两条复核期限已经过了还没处理，一条期限没到，一条已经处理完，用来观察超期未复核的清单
+function seedIgnores() {
+  return [
+    { id: 'ignore-3001', ruleId: 'rule-1003', fileId: 'file-2009', lineNo: 6, note: '换机器时一起改，先不处理', reviewBy: '2026-09-08T00:00:00.000Z', handled: false, createdAt: '2026-09-04T02:00:00.000Z' },
+    { id: 'ignore-3002', ruleId: 'rule-1001', fileId: 'file-2005', lineNo: 4, note: '加载日志先留着，下轮再收', reviewBy: '2026-09-01T00:00:00.000Z', handled: false, createdAt: '2026-08-28T02:00:00.000Z' },
+    { id: 'ignore-3003', ruleId: 'rule-1005', fileId: 'file-2008', lineNo: 5, note: '等统一配置改造一起收', reviewBy: '2026-10-01T00:00:00.000Z', handled: false, createdAt: '2026-09-06T02:00:00.000Z' },
+    { id: 'ignore-3004', ruleId: 'rule-1002', fileId: 'file-2004', lineNo: 2, note: '已改成 const', reviewBy: '2026-09-05T00:00:00.000Z', handled: true, createdAt: '2026-09-03T02:00:00.000Z' },
+  ];
+}
+
+// 把单条忽略记录整理成固定结构，复核期限与处理状态不认识的一律回到默认值
+function normalizeIgnore(item, fallbackIndex) {
+  const source = item && typeof item === 'object' ? item : {};
+  const createdAt = typeof source.createdAt === 'string' && source.createdAt ? source.createdAt : new Date().toISOString();
+  const lineNo = Number.isInteger(source.lineNo) && source.lineNo > 0 ? source.lineNo : 0;
+  return {
+    id: typeof source.id === 'string' && source.id ? source.id : `ignore-restored-${fallbackIndex + 1}`,
+    ruleId: typeof source.ruleId === 'string' ? source.ruleId : '',
+    fileId: typeof source.fileId === 'string' ? source.fileId : '',
+    lineNo,
+    note: typeof source.note === 'string' ? source.note : '',
+    reviewBy: typeof source.reviewBy === 'string' ? source.reviewBy : '',
+    handled: source.handled === true,
+    createdAt,
+  };
+}
+
 // 把单个文件整理成固定结构，类型不在清单里的一律从路径后缀推断
 function normalizeFile(item, fallbackIndex) {
   const source = item && typeof item === 'object' ? item : {};
@@ -335,10 +366,10 @@ function normalizeFile(item, fallbackIndex) {
   };
 }
 
-// 整份数据保证规则与文件结构一致，缺编号、缺名称、缺路径的条目一律丢掉
+// 整份数据保证规则、文件与忽略记录结构一致，缺编号、缺名称、缺路径的条目一律丢掉
 function normalize(raw) {
   const source = raw && typeof raw === 'object' ? raw : {};
-  const seed = { rules: seedRules(), files: seedFiles() };
+  const seed = { rules: seedRules(), files: seedFiles(), ignores: seedIgnores() };
 
   const rawRules = Array.isArray(source.rules) ? source.rules : seed.rules;
   const seenRuleIds = new Set();
@@ -368,7 +399,18 @@ function normalize(raw) {
     files.push(file);
   });
 
-  return { rules, files };
+  const rawIgnores = Array.isArray(source.ignores) ? source.ignores : seed.ignores;
+  const seenIgnoreIds = new Set();
+  const ignores = [];
+  rawIgnores.forEach((item, index) => {
+    const ignore = normalizeIgnore(item, index);
+    if (!ignore.id || !ignore.ruleId || !ignore.fileId || !ignore.lineNo) return;
+    if (seenIgnoreIds.has(ignore.id)) return;
+    seenIgnoreIds.add(ignore.id);
+    ignores.push(ignore);
+  });
+
+  return { rules, files, ignores };
 }
 
 // 读取数据文件：文件缺失或内容损坏时回落到初始数据并立刻补写
@@ -377,7 +419,7 @@ function load() {
     const raw = fs.readFileSync(DATA_FILE, 'utf8');
     return normalize(JSON.parse(raw));
   } catch (err) {
-    const data = { rules: seedRules(), files: seedFiles() };
+    const data = { rules: seedRules(), files: seedFiles(), ignores: seedIgnores() };
     save(data);
     return data;
   }
@@ -396,9 +438,11 @@ module.exports = {
   save,
   seedRules,
   seedFiles,
+  seedIgnores,
   normalize,
   normalizeRule,
   normalizeFile,
+  normalizeIgnore,
   LEVELS,
   STATUSES,
   FILE_TYPES,

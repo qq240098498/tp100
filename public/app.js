@@ -407,6 +407,122 @@ function renderScan(result) {
   el('hit-empty').classList.toggle('hidden', result.hits.length > 0);
 }
 
+// 巡检一遍，把总览与几类要盯住的清单都画出来
+async function runInspect() {
+  clearNotice();
+  clearFieldMarks();
+  const limit = el('inspect-limit').value.trim();
+  const query = limit ? `?limit=${encodeURIComponent(limit)}` : '';
+  try {
+    const result = await request(`/api/inspect${query}`);
+    renderInspect(result);
+  } catch (err) {
+    notify(err.message, 'error');
+    markField(err.field);
+  }
+}
+
+// 五类要盯住的清单：标题、表头与每一行怎么画；每条都带上具体数字与所属规则
+const WATCH_DEFS = [
+  {
+    key: 'disabledSinceCreation',
+    title: '建好之后一直是停用的',
+    headers: ['编码', '名称', '级别', '适用文件类型', '匹配写法', '建的时间', '停用至今'],
+    row: (item) => `<tr>
+        <td class="mono">${escapeHtml(item.code)}</td>
+        <td>${escapeHtml(item.name)}</td>
+        <td><span class="tag ${levelClass(item.level)}">${escapeHtml(item.level)}</span></td>
+        <td>${escapeHtml(item.fileType)}</td>
+        <td class="mono">${escapeHtml(item.pattern)}</td>
+        <td class="mono">${escapeHtml(formatTime(item.createdAt))}</td>
+        <td>${item.daysSinceCreation} 天</td>
+      </tr>`,
+  },
+  {
+    key: 'enabledNoHits',
+    title: '启用着但从来没有产生过命中',
+    headers: ['编码', '名称', '级别', '适用文件类型', '匹配写法', '命中', '启用至今'],
+    row: (item) => `<tr>
+        <td class="mono">${escapeHtml(item.code)}</td>
+        <td>${escapeHtml(item.name)}</td>
+        <td><span class="tag ${levelClass(item.level)}">${escapeHtml(item.level)}</span></td>
+        <td>${escapeHtml(item.fileType)}</td>
+        <td class="mono">${escapeHtml(item.pattern)}</td>
+        <td>${item.hitCount} 条</td>
+        <td>${item.daysSinceCreation} 天</td>
+      </tr>`,
+  },
+  {
+    key: 'duplicatePattern',
+    title: '匹配写法与另一条启用规则完全一样',
+    headers: ['匹配写法', '重复条数', '所属规则集', '各自命中'],
+    row: (item) => `<tr>
+        <td class="mono">${escapeHtml(item.pattern)}</td>
+        <td>${item.ruleCount} 条</td>
+        <td>${item.rules.map((rule) => `${escapeHtml(rule.code)} ${escapeHtml(rule.name)}`).join('、')}</td>
+        <td>${item.rules.map((rule) => `${escapeHtml(rule.code)} ${rule.hitCount} 条`).join('、')}</td>
+      </tr>`,
+  },
+  {
+    key: 'stale',
+    title: '改动时间在很久以前的',
+    headers: ['编码', '名称', '级别', '状态', '上次改动', '没改动天数'],
+    row: (item) => `<tr>
+        <td class="mono">${escapeHtml(item.code)}</td>
+        <td>${escapeHtml(item.name)}</td>
+        <td><span class="tag ${levelClass(item.level)}">${escapeHtml(item.level)}</span></td>
+        <td>${escapeHtml(item.status)}</td>
+        <td class="mono">${escapeHtml(formatTime(item.updatedAt))}</td>
+        <td>${item.daysSinceUpdate} 天</td>
+      </tr>`,
+  },
+  {
+    key: 'ignoredOverdue',
+    title: '标了忽略但复核期限已过还没处理',
+    headers: ['规则编码', '规则名称', '文件', '行号', '复核期限', '超期', '现在还命中吗', '备注'],
+    row: (item) => `<tr>
+        <td class="mono">${escapeHtml(item.code || '（规则已删除）')}</td>
+        <td>${escapeHtml(item.ruleName || '—')}</td>
+        <td class="mono">${escapeHtml(item.path || '（文件已移出）')}</td>
+        <td class="mono">${item.lineNo}</td>
+        <td class="mono">${escapeHtml(formatTime(item.reviewBy))}</td>
+        <td>${item.daysOverdue} 天</td>
+        <td>${item.stillHits ? '仍命中' : '已不命中'}</td>
+        <td class="note-cell">${escapeHtml(item.note)}</td>
+      </tr>`,
+  },
+];
+
+function renderWatchBlock(def, list, limit) {
+  const tip = list.count > list.items.length
+    ? `<p class="watch-tip">条数上限是 ${limit}，这一类一共 ${list.count} 条，还有 ${list.count - list.items.length} 条没显示，调大上限再巡检</p>`
+    : '';
+  const table = list.items.length
+    ? `<div class="table-wrap"><table class="grid">
+        <thead><tr>${def.headers.map((header) => `<th>${header}</th>`).join('')}</tr></thead>
+        <tbody>${list.items.map(def.row).join('')}</tbody>
+      </table></div>`
+    : '<p class="empty-tip">这一类目前没有要盯的</p>';
+  return `<div class="watch-block"><h3>${def.title}<span class="watch-count">共 ${list.count} 条</span></h3>${tip}${table}</div>`;
+}
+
+function renderInspect(result) {
+  el('inspect-meta').textContent = `巡检时刻 ${formatTime(result.generatedAt)}　规则共 ${result.rulesTotal} 条（启用 ${result.enabledRules} 条）　文件共 ${result.filesTotal} 个　当前全量命中 ${result.hitsTotal} 条　超过 ${result.staleDays} 天没改动算久　每类最多显示 ${result.limit} 条`;
+
+  const shareLine = (label, list) => `${label}：${list.map((item) => `${item.name} ${item.count} 条（占 ${item.share}%）`).join('　')}`;
+  const overviewBox = el('inspect-overview');
+  overviewBox.innerHTML = `
+    <div class="summary-line"><strong>规则共 ${result.rulesTotal} 条，下面各维度的占比都按这个总数算</strong></div>
+    <div class="summary-line">${escapeHtml(shareLine('按级别', result.overview.byLevel))}</div>
+    <div class="summary-line">${escapeHtml(shareLine('按状态', result.overview.byStatus))}</div>
+    <div class="summary-line">${escapeHtml(shareLine('按适用文件类型', result.overview.byFileType))}</div>`;
+  overviewBox.classList.remove('hidden');
+
+  el('inspect-watch').innerHTML = WATCH_DEFS
+    .map((def) => renderWatchBlock(def, result.watch[def.key], result.limit))
+    .join('');
+}
+
 // 列表上的操作用事件委托统一处理，列表重绘之后不需要重新绑定
 document.addEventListener('click', async (event) => {
   const node = event.target.closest('button');
@@ -505,6 +621,7 @@ el('file-filter-reset').addEventListener('click', () => {
   loadFiles().catch((err) => notify(err.message, 'error'));
 });
 el('scan-run').addEventListener('click', runScan);
+el('inspect-run').addEventListener('click', runInspect);
 el('rule-filter-level').addEventListener('change', () => {
   loadRules().catch((err) => notify(err.message, 'error'));
 });

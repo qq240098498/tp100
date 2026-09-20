@@ -156,6 +156,21 @@
       </div>
       <p class="empty-tip hidden" id="hit-empty">这一轮没有命中</p>
     </section>
+
+    <section class="panel">
+      <div class="panel-head">
+        <h2>全局巡检</h2>
+        <div class="filters">
+          <label class="inspect-limit" data-field="inspectLimit">每类条数上限
+            <input id="inspect-limit" inputmode="numeric" placeholder="默认 20" maxlength="3">
+          </label>
+          <button type="button" id="inspect-run">巡检一遍</button>
+        </div>
+      </div>
+      <p class="scan-meta" id="inspect-meta">还没有巡检过，点右上角巡检一遍</p>
+      <div class="summary hidden" id="inspect-overview"></div>
+      <div id="inspect-watch"></div>
+    </section>
   </main>
 
   <script src="app.js"></script>

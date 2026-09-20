@@ -10,7 +10,7 @@
       "pattern": "console.log",
       "note": "上线前要换成统一日志",
       "createdAt": "2026-09-02T02:00:00.000Z",
-      "updatedAt": "2026-09-02T02:00:00.000Z"
+      "updatedAt": "2026-09-15T02:00:00.000Z"
     },
     {
       "id": "rule-1002",
@@ -45,8 +45,8 @@
       "fileType": "全部",
       "pattern": "eval(",
       "note": "",
-      "createdAt": "2026-09-02T02:00:00.000Z",
-      "updatedAt": "2026-09-02T02:00:00.000Z"
+      "createdAt": "2026-06-10T02:00:00.000Z",
+      "updatedAt": "2026-07-15T02:00:00.000Z"
     },
     {
       "id": "rule-1005",
@@ -93,8 +93,8 @@
       "fileType": "全部",
       "pattern": "postgres://",
       "note": "",
-      "createdAt": "2026-09-02T02:00:00.000Z",
-      "updatedAt": "2026-09-02T02:00:00.000Z"
+      "createdAt": "2026-06-10T02:00:00.000Z",
+      "updatedAt": "2026-06-10T02:00:00.000Z"
     },
     {
       "id": "rule-1009",
@@ -143,6 +143,18 @@
       "note": "",
       "createdAt": "2026-09-02T02:00:00.000Z",
       "updatedAt": "2026-09-02T02:00:00.000Z"
+    },
+    {
+      "id": "rule-1013",
+      "code": "CODE-013",
+      "name": "调试输出统一走日志",
+      "level": "提示",
+      "status": "启用",
+      "fileType": "js",
+      "pattern": "console.log",
+      "note": "和 CODE-001 说的是一回事",
+      "createdAt": "2026-09-10T02:00:00.000Z",
+      "updatedAt": "2026-09-10T02:00:00.000Z"
     }
   ],
   "files": [
@@ -253,6 +265,48 @@
       "note": "部署描述",
       "createdAt": "2026-09-02T03:00:00.000Z",
       "updatedAt": "2026-09-02T03:00:00.000Z"
+    }
+  ],
+  "ignores": [
+    {
+      "id": "ignore-3001",
+      "ruleId": "rule-1003",
+      "fileId": "file-2009",
+      "lineNo": 6,
+      "note": "换机器时一起改，先不处理",
+      "reviewBy": "2026-09-08T00:00:00.000Z",
+      "handled": false,
+      "createdAt": "2026-09-04T02:00:00.000Z"
+    },
+    {
+      "id": "ignore-3002",
+      "ruleId": "rule-1001",
+      "fileId": "file-2005",
+      "lineNo": 4,
+      "note": "加载日志先留着，下轮再收",
+      "reviewBy": "2026-09-01T00:00:00.000Z",
+      "handled": false,
+      "createdAt": "2026-08-28T02:00:00.000Z"
+    },
+    {
+      "id": "ignore-3003",
+      "ruleId": "rule-1005",
+      "fileId": "file-2008",
+      "lineNo": 5,
+      "note": "等统一配置改造一起收",
+      "reviewBy": "2026-10-01T00:00:00.000Z",
+      "handled": false,
+      "createdAt": "2026-09-06T02:00:00.000Z"
+    },
+    {
+      "id": "ignore-3004",
+      "ruleId": "rule-1002",
+      "fileId": "file-2004",
+      "lineNo": 2,
+      "note": "已改成 const",
+      "reviewBy": "2026-09-05T00:00:00.000Z",
+      "handled": true,
+      "createdAt": "2026-09-03T02:00:00.000Z"
     }
   ]
 }

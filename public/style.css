@@ -383,3 +383,43 @@ label.full input {
   display: flex;
   gap: 10px;
 }
+
+label.inspect-limit {
+  flex-direction: row;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+label.inspect-limit input {
+  width: 76px;
+}
+
+.watch-block {
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px dashed var(--line);
+}
+
+.watch-block h3 {
+  margin: 0 0 8px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.watch-count {
+  margin-left: 8px;
+  color: var(--ink-soft);
+  font-size: 12px;
+  font-weight: 400;
+}
+
+.watch-tip {
+  margin: 0 0 8px;
+  padding: 6px 10px;
+  border: 1px solid var(--warn-line);
+  border-radius: 6px;
+  background: var(--warn-bg);
+  color: #8a5a00;
+  font-size: 12.5px;
+}
